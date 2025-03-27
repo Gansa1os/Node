@@ -148,7 +148,6 @@ function main_menu() {
 
     echo -e "\n${PURPLE}-------------------------------------------${NC}"
     echo -e "${GREEN}NodeSentry — защита твоих нод в Telegram${NC}"
-    echo -e "${CYAN}t.me/cryptoforto${NC}"
     echo -e "${PURPLE}-------------------------------------------${NC}"
     echo -e "Нажмите Enter для продолжения..."
     read
