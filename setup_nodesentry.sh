@@ -1,13 +1,15 @@
 #!/bin/bash
 
-# === Цвета ===
+# Цвета ANSI
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-CYAN='\033[0;36m'
 YELLOW='\033[1;33m'
-RESET='\033[0m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m' # Сброс цвета
 
-# === Конфигурация ===
+# Конфигурация
 INSTALL_DIR="/root/nodesentry"
 MONITORS_DIR="$INSTALL_DIR/monitors"
 BOT_TOKEN="7243235590:AAGc3MkrJtOW8O7EiMJlOcSGI3-4tS9Hzdc"
@@ -15,7 +17,9 @@ CHAT_ID="479750930"
 LOG_PATH="/root/.hyperlane/logs/latest.log"
 
 function install_hyperlane() {
-  echo -e "${CYAN}📦 Устанавливаем мониторинг Hyperlane...${RESET}"
+  echo -e "${CYAN}\n=========================="
+  echo -e "\xF0\x9F\x9A\xA6 Установка Hyperlane Monitor${NC}"
+  echo -e "${CYAN}==========================${NC}"
 
   mkdir -p "$MONITORS_DIR"
 
@@ -48,12 +52,12 @@ def get_node_name(ip):
 def format_message(line, node_name):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return f"""
-🚨 <b>NodeSentry: ошибка в логах</b>
+\xf0\x9f\x9a\xa8 <b>NodeSentry: ошибка в логах</b>
 
-🧩 <b>Источник:</b> <code>{node_name}</code>
-🕓 <b>Время:</b> <i>{now}</i>
+\xf0\x9f\xa7\xa9 <b>Источник:</b> <code>{node_name}</code>
+\xf0\x9f\x95\x93 <b>Время:</b> <i>{now}</i>
 
-📄 <b>Сообщение:</b>
+\xf0\x9f\x93\x84 <b>Сообщение:</b>
 <code>{line.strip()}</code>
 """.strip()
 
@@ -106,11 +110,13 @@ EOF
   systemctl enable nodesentry-hyperlane.service
   systemctl restart nodesentry-hyperlane.service
 
-  echo -e "${GREEN}✅ NodeSentry Hyperlane установлен и запущен.${RESET}"
+  echo -e "\n${GREEN}✅ Мониторинг Hyperlane успешно установлен и запущен.${NC}"
 }
 
 function uninstall_all() {
-  echo -e "${YELLOW}🧹 Удаляем NodeSentry...${RESET}"
+  echo -e "${RED}\n=========================="
+  echo -e "\xF0\x9F\xA7\xA9 Удаление NodeSentry${NC}"
+  echo -e "${RED}==========================${NC}"
 
   systemctl stop nodesentry-hyperlane.service 2>/dev/null
   systemctl disable nodesentry-hyperlane.service 2>/dev/null
@@ -119,29 +125,35 @@ function uninstall_all() {
   rm -rf /root/__pycache__
 
   systemctl daemon-reload
-
-  echo -e "${GREEN}✅ NodeSentry полностью удалён.${RESET}"
+  echo -e "${GREEN}✅ NodeSentry полностью удалён.${NC}\n"
 }
 
 function main_menu() {
-  echo -e "${CYAN}=============================${RESET}"
-  echo -e " 🚀 ${YELLOW}Установщик NodeSentry${RESET}"
-  echo -e "${CYAN}=============================${RESET}"
-  echo -e ""
-  echo -e "  1) 🛠 ${GREEN}Установить мониторинг Hyperlane${RESET}"
-  echo -e "  2) 🧹 ${RED}Удалить всё${RESET}"
-  echo -e "  3) ❌ ${YELLOW}Выйти${RESET}"
-  echo -e ""
-  echo -e "${CYAN}-----------------------------${RESET}"
-  echo -ne "👉 ${YELLOW}Выберите действие: ${RESET}"
-  read choice
+  while true; do
+    echo -e "${PURPLE}=============================${NC}"
+    echo -e "${YELLOW} 🚀 Установщик NodeSentry${NC}"
+    echo -e "${PURPLE}=============================${NC}"
+    echo -e "\n  1) 🛠 Установить мониторинг Hyperlane"
+    echo -e "  2) 🧹 Удалить всё"
+    echo -e "  3) ❌ Выйти"
+    echo -ne "\n👉 ${CYAN}Выберите действие: ${NC}"
+    read choice
 
-  case $choice in
-    1) install_hyperlane ;;
-    2) uninstall_all ;;
-    3) echo -e "${GREEN}👋 Выход.${RESET}" ;;
-    *) echo -e "${RED}❗ Неверный выбор.${RESET}" ;;
-  esac
+    case $choice in
+      1) install_hyperlane ;;
+      2) uninstall_all ;;
+      3) echo -e "${GREEN}👋 До свидания!${NC}"; exit 0 ;;
+      *) echo -e "${RED}❗ Неверный выбор. Введите 1, 2 или 3.${NC}" ;;
+    esac
+
+    echo -e "\n${PURPLE}-------------------------------------------${NC}"
+    echo -e "${GREEN}NodeSentry — защита твоих нод в Telegram${NC}"
+    echo -e "${CYAN}t.me/cryptoforto${NC}"
+    echo -e "${PURPLE}-------------------------------------------${NC}"
+    echo -e "Нажмите Enter для продолжения..."
+    read
+    clear
+  done
 }
 
 main_menu
