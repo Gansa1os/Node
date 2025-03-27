@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# === Цвета ===
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+RESET='\033[0m'
+
+# === Конфигурация ===
 INSTALL_DIR="/root/nodesentry"
 MONITORS_DIR="$INSTALL_DIR/monitors"
 BOT_TOKEN="7243235590:AAGc3MkrJtOW8O7EiMJlOcSGI3-4tS9Hzdc"
@@ -7,7 +15,7 @@ CHAT_ID="479750930"
 LOG_PATH="/root/.hyperlane/logs/latest.log"
 
 function install_hyperlane() {
-  echo "📦 Устанавливаем мониторинг Hyperlane..."
+  echo -e "${CYAN}📦 Устанавливаем мониторинг Hyperlane...${RESET}"
 
   mkdir -p "$MONITORS_DIR"
 
@@ -98,11 +106,11 @@ EOF
   systemctl enable nodesentry-hyperlane.service
   systemctl restart nodesentry-hyperlane.service
 
-  echo "✅ NodeSentry Hyperlane установлен и запущен."
+  echo -e "${GREEN}✅ NodeSentry Hyperlane установлен и запущен.${RESET}"
 }
 
 function uninstall_all() {
-  echo "🗑 Удаляем NodeSentry..."
+  echo -e "${YELLOW}🧹 Удаляем NodeSentry...${RESET}"
 
   systemctl stop nodesentry-hyperlane.service 2>/dev/null
   systemctl disable nodesentry-hyperlane.service 2>/dev/null
@@ -112,24 +120,27 @@ function uninstall_all() {
 
   systemctl daemon-reload
 
-  echo "✅ NodeSentry полностью удалён."
+  echo -e "${GREEN}✅ NodeSentry полностью удалён.${RESET}"
 }
 
 function main_menu() {
-  echo "============================="
-  echo "    🚀 Установщик NodeSentry"
-  echo "============================="
-  echo "1) Установить мониторинг Hyperlane"
-  echo "2) Удалить всё"
-  echo "3) Выйти"
-  echo "-----------------------------"
-  read -p "Выберите действие: " choice
+  echo -e "${CYAN}=============================${RESET}"
+  echo -e " 🚀 ${YELLOW}Установщик NodeSentry${RESET}"
+  echo -e "${CYAN}=============================${RESET}"
+  echo -e ""
+  echo -e "  1) 🛠 ${GREEN}Установить мониторинг Hyperlane${RESET}"
+  echo -e "  2) 🧹 ${RED}Удалить всё${RESET}"
+  echo -e "  3) ❌ ${YELLOW}Выйти${RESET}"
+  echo -e ""
+  echo -e "${CYAN}-----------------------------${RESET}"
+  echo -ne "👉 ${YELLOW}Выберите действие: ${RESET}"
+  read choice
 
   case $choice in
     1) install_hyperlane ;;
     2) uninstall_all ;;
-    3) echo "Выход..." ;;
-    *) echo "Неверный выбор." ;;
+    3) echo -e "${GREEN}👋 Выход.${RESET}" ;;
+    *) echo -e "${RED}❗ Неверный выбор.${RESET}" ;;
   esac
 }
 
