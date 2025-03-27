@@ -1,26 +1,19 @@
 #!/bin/bash
 
-# === Конфигурация ===
-LOG_PATH="/root/.hyperlane/logs/latest.log"  # ← Измени на нужный путь, если другой
+INSTALL_DIR="/root/nodesentry"
+MONITORS_DIR="$INSTALL_DIR/monitors"
 BOT_TOKEN="7243235590:AAGc3MkrJtOW8O7EiMJlOcSGI3-4tS9Hzdc"
 CHAT_ID="479750930"
+LOG_PATH="/root/.hyperlane/logs/latest.log"
 
-# === IP → Нода ===
-read -r -d '' NODE_MAP << EOM
-37.46.23.83:Нода_1
-185.183.247.56:Нода_2
-62.171.145.237:Нода_8
-EOM
+function install_hyperlane() {
+  echo "📦 Устанавливаем мониторинг Hyperlane..."
 
-# === Установка зависимостей ===
-apt update && apt install -y python3 python3-pip
-pip3 install requests
+  mkdir -p "$MONITORS_DIR"
 
-# === Создание Python-скрипта ===
-cat > /root/node_monitor.py << EOF
+  cat > "$MONITORS_DIR/hyperlane_monitor.py" << EOF
 import requests
 import time
-import socket
 from datetime import datetime
 
 BOT_TOKEN = "${BOT_TOKEN}"
@@ -72,7 +65,7 @@ def monitor():
     ip = get_ip()
     node_name = get_node_name(ip)
     with open(LOG_FILE, "r") as f:
-        f.seek(0, 2)  # Перемотка в конец
+        f.seek(0, 2)
         while True:
             line = f.readline()
             if not line:
@@ -86,14 +79,13 @@ if __name__ == "__main__":
     monitor()
 EOF
 
-# === Создание systemd-сервиса ===
-cat > /etc/systemd/system/nodesentry.service << EOF
+  cat > /etc/systemd/system/nodesentry-hyperlane.service << EOF
 [Unit]
-Description=NodeSentry log monitor
+Description=NodeSentry Hyperlane Monitor
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 /root/node_monitor.py
+ExecStart=/usr/bin/python3 $MONITORS_DIR/hyperlane_monitor.py
 Restart=always
 RestartSec=5
 
@@ -101,10 +93,44 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-# === Запуск сервиса ===
-systemctl daemon-reexec
-systemctl daemon-reload
-systemctl enable nodesentry.service
-systemctl restart nodesentry.service
+  systemctl daemon-reexec
+  systemctl daemon-reload
+  systemctl enable nodesentry-hyperlane.service
+  systemctl restart nodesentry-hyperlane.service
 
-echo "✅ NodeSentry установлен и запущен как systemd-сервис."
+  echo "✅ NodeSentry Hyperlane установлен и запущен."
+}
+
+function uninstall_all() {
+  echo "🗑 Удаляем NodeSentry..."
+
+  systemctl stop nodesentry-hyperlane.service 2>/dev/null
+  systemctl disable nodesentry-hyperlane.service 2>/dev/null
+  rm -f /etc/systemd/system/nodesentry-hyperlane.service
+  rm -rf "$INSTALL_DIR"
+  rm -rf /root/__pycache__
+
+  systemctl daemon-reload
+
+  echo "✅ NodeSentry полностью удалён."
+}
+
+function main_menu() {
+  echo "============================="
+  echo "    🚀 Установщик NodeSentry"
+  echo "============================="
+  echo "1) Установить мониторинг Hyperlane"
+  echo "2) Удалить всё"
+  echo "3) Выйти"
+  echo "-----------------------------"
+  read -p "Выберите действие: " choice
+
+  case $choice in
+    1) install_hyperlane ;;
+    2) uninstall_all ;;
+    3) echo "Выход..." ;;
+    *) echo "Неверный выбор." ;;
+  esac
+}
+
+main_menu
