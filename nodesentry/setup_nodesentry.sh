@@ -85,25 +85,25 @@ fi
 install_initverse_monitor() {
   MODULE="initverse"
   FILE="monitors/initverse_monitor.py"
-  RAW_URL="https://raw.githubusercontent.com/Gansa1os/Node/main/nodesentry/\$FILE"
-  SERVICE_FILE="/etc/systemd/system/nodesentry-\$MODULE.service"
+  RAW_URL="https://raw.githubusercontent.com/Gansa1os/Node/main/nodesentry/$FILE"
+  SERVICE_FILE="/etc/systemd/system/nodesentry-$MODULE.service"
 
-  echo -e "${BLUE}Скачиваем монитор \$MODULE...${NC}"
-  curl -sSf -o "\$FILE" "\$RAW_URL" || {
-    echo -e "${RED}Не удалось скачать \$MODULE. Проверь ссылку.${NC}"
+  echo -e "${BLUE}Скачиваем монитор $MODULE...${NC}"
+  curl -sSf -o "$FILE" "$RAW_URL" || {
+    echo -e "${RED}Не удалось скачать $MODULE. Проверь ссылку.${NC}"
     exit 1
   }
 
   echo -e "${BLUE}Создаём systemd-сервис...${NC}"
-  sed "s|{{MODULE_NAME}}|\$MODULE|g; s|{{FILENAME}}|\${MODULE}_monitor.py|g" \
-    nodesentry.service.template > "\$SERVICE_FILE"
+  sed "s|{{MODULE_NAME}}|$MODULE|g; s|{{FILENAME}}|${MODULE}_monitor.py|g" \
+    nodesentry.service.template > "$SERVICE_FILE"
 
   echo -e "${BLUE}Активируем сервис...${NC}"
   systemctl daemon-reload
-  systemctl enable "nodesentry-\$MODULE.service"
-  systemctl restart "nodesentry-\$MODULE.service"
+  systemctl enable "nodesentry-$MODULE.service"
+  systemctl restart "nodesentry-$MODULE.service"
 
-  echo -e "${GREEN}Модуль \$MODULE установлен и запущен!${NC}"
+  echo -e "${GREEN}Модуль $MODULE установлен и запущен!${NC}"
 }
 
 # === Удаление модулей ===
@@ -112,45 +112,50 @@ remove_module_menu() {
 
   MODULES=()
   for f in monitors/*_monitor.py; do
-    [ -e "\$f" ] || continue
-    MODULE=$(basename "\$f" _monitor.py)
-    MODULES+=("\$MODULE")
+    [ -e "$f" ] || continue
+    MODULE=$(basename "$f" _monitor.py)
+    MODULES+=("$MODULE")
   done
 
-  if [ \${#MODULES[@]} -eq 0 ]; then
+  if [ ${#MODULES[@]} -eq 0 ]; then
     echo -e "${RED}Нет установленных модулей.${NC}"
     return
   fi
 
   echo "Выберите модуль для удаления:"
-  select MODULE in "\${MODULES[@]}" "Отмена"; do
-    if [[ "\$REPLY" -ge 1 && "\$REPLY" -le \${#MODULES[@]} ]]; then
-      remove_selected_module "\$MODULE"
-      break
-    elif [ "$REPLY" -eq "$(( ${#MODULES[@]} + 1 ))" ]; then
-      echo "Отмена."
-      break
-    else
-      echo "Неверный выбор."
-    fi
+  select MODULE in "${MODULES[@]}" "Отмена"; do
+    case "$REPLY" in
+      ''|*[!0-9]*) echo "Нужно ввести число." ;;
+      *)
+        if [ "$REPLY" -ge 1 ] && [ "$REPLY" -le ${#MODULES[@]} ]; then
+          remove_selected_module "$MODULE"
+          break
+        elif [ "$REPLY" -eq $(( ${#MODULES[@]} + 1 )) ]; then
+          echo "Отмена."
+          break
+        else
+          echo "Неверный выбор."
+        fi
+        ;;
+    esac
   done
 }
 
 remove_selected_module() {
-  MODULE="\$1"
-  SERVICE="nodesentry-\$MODULE.service"
-  FILE="monitors/\${MODULE}_monitor.py"
-  SERVICE_PATH="/etc/systemd/system/\$SERVICE"
+  MODULE="$1"
+  SERVICE="nodesentry-$MODULE.service"
+  FILE="monitors/${MODULE}_monitor.py"
+  SERVICE_PATH="/etc/systemd/system/$SERVICE"
 
-  echo -e "${BLUE}Удаляем: \$MODULE${NC}"
+  echo -e "${BLUE}Удаляем: $MODULE${NC}"
 
-  systemctl stop "\$SERVICE" 2>/dev/null || true
-  systemctl disable "\$SERVICE" 2>/dev/null || true
-  [ -f "\$SERVICE_PATH" ] && rm -f "\$SERVICE_PATH" && echo "Удалён: \$SERVICE_PATH"
-  [ -f "\$FILE" ] && rm -f "\$FILE" && echo "Удалён: \$FILE"
+  systemctl stop "$SERVICE" 2>/dev/null || true
+  systemctl disable "$SERVICE" 2>/dev/null || true
+  [ -f "$SERVICE_PATH" ] && rm -f "$SERVICE_PATH" && echo "Удалён: $SERVICE_PATH"
+  [ -f "$FILE" ] && rm -f "$FILE" && echo "Удалён: $FILE"
 
   systemctl daemon-reload
-  echo -e "${GREEN}Модуль \$MODULE удалён.${NC}"
+  echo -e "${GREEN}Модуль $MODULE удалён.${NC}"
 }
 
 # === Главное меню ===
@@ -160,14 +165,13 @@ while true; do
   echo "1) Установить мониторинг initverse"
   echo "2) Удалить модуль мониторинга"
   echo "0) Выход"
-  read -p "Выберите опцию: " choice
+  read -p "Выберите опцию (цифрой): " choice
 
-  case \$choice in
+  case $choice in
     1) install_initverse_monitor ;;
     2) remove_module_menu ;;
     0) echo -e "${YELLOW}Выход...${NC}"; exit 0 ;;
     *) echo -e "${RED}Неверный выбор${NC}" ;;
   esac
 
-  echo ""
 done
