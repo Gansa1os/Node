@@ -52,17 +52,15 @@ fi
 if [ ! -f "$CONFIG_FILE" ]; then
   echo -e "${YELLOW}Ввод Telegram CHAT_ID (BOT_TOKEN уже задан):${NC}"
   BOT_TOKEN="7243235590:AAGc3MkrJtOW8O7EiMJlOcSGI3-4tS9Hzdc"
-  echo -e "
-${BLUE}ℹ️ Бот уже создан: используем общего бота @NodeSentry_bot${NC}"
-echo -e "${YELLOW}📥 Чтобы получать уведомления:${NC}"
-echo -e " - Найдите и откройте в Telegram: ${GREEN}@NodeSentry_bot${NC}"
-echo -e " - Нажмите кнопку ${GREEN}Start${NC}"
-echo -e "
-${YELLOW}🔎 Как узнать ваш CHAT_ID:${NC}"
-echo -e " - Перешлите любое сообщение боту: ${GREEN}@getidsbot${NC}"
-echo -e " - Он ответит вам вашим CHAT_ID"
-echo ""
-read -p "Введите ваш CHAT_ID: " CHAT_ID
+  echo -e "\n${BLUE}ℹ️ Бот уже создан: используем общего бота @NodeSentry_bot${NC}"
+  echo -e "${YELLOW}📥 Чтобы получать уведомления:${NC}"
+  echo -e " - Найдите и откройте в Telegram: ${GREEN}@NodeSentry_bot${NC}"
+  echo -e " - Нажмите кнопку ${GREEN}Start${NC}"
+  echo -e "\n${YELLOW}🔎 Как узнать ваш CHAT_ID:${NC}"
+  echo -e " - Перешлите любое сообщение боту: ${GREEN}@getidsbot${NC}"
+  echo -e " - Он ответит вам вашим CHAT_ID"
+  echo ""
+  read -p "Введите ваш CHAT_ID: " CHAT_ID
 
   cat <<EOF > "$CONFIG_FILE"
 telegram:
@@ -102,6 +100,31 @@ install_initverse_monitor() {
   MODULE="initverse"
   FILE="$MONITOR_DIR/initverse_monitor.py"
   RAW_URL="https://raw.githubusercontent.com/Gansa1os/Node/main/nodesentry/monitors/initverse_monitor.py"
+  SERVICE_FILE="/etc/systemd/system/nodesentry-$MODULE.service"
+
+  echo -e "${BLUE}Скачиваем монитор $MODULE...${NC}"
+  curl -sSf -o "$FILE" "$RAW_URL" || {
+    echo -e "${RED}Не удалось скачать $MODULE. Проверь ссылку.${NC}"
+    exit 1
+  }
+
+  echo -e "${BLUE}Создаём systemd-сервис...${NC}"
+  sed "s|{{MODULE_NAME}}|$MODULE|g; s|{{FILENAME}}|${MODULE}_monitor.py|g" \
+    "$TEMPLATE_FILE" > "$SERVICE_FILE"
+
+  echo -e "${BLUE}Активируем сервис...${NC}"
+  systemctl daemon-reload
+  systemctl enable "nodesentry-$MODULE.service"
+  systemctl restart "nodesentry-$MODULE.service"
+
+  echo -e "${GREEN}Модуль $MODULE установлен и запущен!${NC}"
+}
+
+# === Установка vana ===
+install_vana_monitor() {
+  MODULE="vana"
+  FILE="$MONITOR_DIR/vana_monitor.py"
+  RAW_URL="https://raw.githubusercontent.com/Gansa1os/Node/main/nodesentry/monitors/vana_monitor.py"
   SERVICE_FILE="/etc/systemd/system/nodesentry-$MODULE.service"
 
   echo -e "${BLUE}Скачиваем монитор $MODULE...${NC}"
@@ -180,12 +203,14 @@ while true; do
   echo -e "${BLUE}NodeSentry — главное меню${NC}"
   echo "1) Установить мониторинг initverse"
   echo "2) Удалить модуль мониторинга"
+  echo "3) Установить мониторинг vana"
   echo "0) Выход"
   read -p "Выберите опцию (цифрой): " choice
 
   case $choice in
     1) install_initverse_monitor ;;
     2) remove_module_menu ;;
+    3) install_vana_monitor ;;
     0) echo -e "${YELLOW}Выход...${NC}"; exit 0 ;;
     *) echo -e "${RED}Неверный выбор${NC}" ;;
   esac
