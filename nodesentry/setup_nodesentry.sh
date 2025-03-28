@@ -7,9 +7,15 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # сброс
+NC='\033[0m'
 
-mkdir -p monitors
+# === Основные пути ===
+ROOT_DIR="/root/nodesentry"
+MONITOR_DIR="$ROOT_DIR/monitors"
+TEMPLATE_FILE="$ROOT_DIR/nodesentry.service.template"
+CONFIG_FILE="$ROOT_DIR/config.yaml"
+
+mkdir -p "$MONITOR_DIR"
 
 # === Проверка зависимостей ===
 echo -e "${BLUE}Проверка зависимостей...${NC}"
@@ -43,12 +49,12 @@ else
 fi
 
 # === config.yaml ===
-if [ ! -f config.yaml ]; then
-  echo -e "${YELLOW}Ввод Telegram-данных:${NC}"
-  read -p "BOT_TOKEN: " BOT_TOKEN
+if [ ! -f "$CONFIG_FILE" ]; then
+  echo -e "${YELLOW}Ввод Telegram CHAT_ID (BOT_TOKEN уже задан):${NC}"
+  BOT_TOKEN="7243235590:AAGc3MkrJtOW8O7EiMJlOcSGI3-4tS9Hzdc"
   read -p "CHAT_ID: " CHAT_ID
 
-  cat <<EOF > config.yaml
+  cat <<EOF > "$CONFIG_FILE"
 telegram:
   bot_token: "$BOT_TOKEN"
   chat_id: "$CHAT_ID"
@@ -58,12 +64,12 @@ node_map:
   "192.168.1.101": "Нода_2"
   "192.168.1.102": "Нода_3"
 EOF
-  echo -e "${GREEN}Файл config.yaml создан.${NC}"
+  echo -e "${GREEN}Файл config.yaml создан в $CONFIG_FILE${NC}"
 fi
 
 # === Шаблон systemd ===
-if [ ! -f nodesentry.service.template ]; then
-  cat <<EOF > nodesentry.service.template
+if [ ! -f "$TEMPLATE_FILE" ]; then
+  cat <<EOF > "$TEMPLATE_FILE"
 [Unit]
 Description=NodeSentry Monitor: {{MODULE_NAME}}
 After=network.target
@@ -78,14 +84,14 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-  echo -e "${GREEN}Создан шаблон nodesentry.service.template${NC}"
+  echo -e "${GREEN}Создан шаблон $TEMPLATE_FILE${NC}"
 fi
 
 # === Установка initverse ===
 install_initverse_monitor() {
   MODULE="initverse"
-  FILE="monitors/initverse_monitor.py"
-  RAW_URL="https://raw.githubusercontent.com/Gansa1os/Node/main/nodesentry/$FILE"
+  FILE="$MONITOR_DIR/initverse_monitor.py"
+  RAW_URL="https://raw.githubusercontent.com/Gansa1os/Node/main/nodesentry/monitors/initverse_monitor.py"
   SERVICE_FILE="/etc/systemd/system/nodesentry-$MODULE.service"
 
   echo -e "${BLUE}Скачиваем монитор $MODULE...${NC}"
@@ -96,7 +102,7 @@ install_initverse_monitor() {
 
   echo -e "${BLUE}Создаём systemd-сервис...${NC}"
   sed "s|{{MODULE_NAME}}|$MODULE|g; s|{{FILENAME}}|${MODULE}_monitor.py|g" \
-    nodesentry.service.template > "$SERVICE_FILE"
+    "$TEMPLATE_FILE" > "$SERVICE_FILE"
 
   echo -e "${BLUE}Активируем сервис...${NC}"
   systemctl daemon-reload
@@ -111,7 +117,7 @@ remove_module_menu() {
   echo -e "\n${YELLOW}Удаление модуля мониторинга${NC}"
 
   MODULES=()
-  for f in monitors/*_monitor.py; do
+  for f in "$MONITOR_DIR"/*_monitor.py; do
     [ -e "$f" ] || continue
     MODULE=$(basename "$f" _monitor.py)
     MODULES+=("$MODULE")
@@ -144,7 +150,7 @@ remove_module_menu() {
 remove_selected_module() {
   MODULE="$1"
   SERVICE="nodesentry-$MODULE.service"
-  FILE="monitors/${MODULE}_monitor.py"
+  FILE="$MONITOR_DIR/${MODULE}_monitor.py"
   SERVICE_PATH="/etc/systemd/system/$SERVICE"
 
   echo -e "${BLUE}Удаляем: $MODULE${NC}"
