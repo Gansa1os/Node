@@ -127,7 +127,7 @@ remove_module_menu() {
     if [[ "\$REPLY" -ge 1 && "\$REPLY" -le \${#MODULES[@]} ]]; then
       remove_selected_module "\$MODULE"
       break
-    elif [[ "\$REPLY" -eq \$((\${#MODULES[@]} + 1)) ]]; then
+    elif [ "$REPLY" -eq "$(( ${#MODULES[@]} + 1 ))" ]; then
       echo "Отмена."
       break
     else
