@@ -52,7 +52,17 @@ fi
 if [ ! -f "$CONFIG_FILE" ]; then
   echo -e "${YELLOW}Ввод Telegram CHAT_ID (BOT_TOKEN уже задан):${NC}"
   BOT_TOKEN="7243235590:AAGc3MkrJtOW8O7EiMJlOcSGI3-4tS9Hzdc"
-  read -p "CHAT_ID: " CHAT_ID
+  echo -e "
+${BLUE}ℹ️ Бот уже создан: используем общего бота @NodeSentry_bot${NC}"
+echo -e "${YELLOW}📥 Чтобы получать уведомления:${NC}"
+echo -e " - Найдите и откройте в Telegram: ${GREEN}@NodeSentry_bot${NC}"
+echo -e " - Нажмите кнопку ${GREEN}Start${NC}"
+echo -e "
+${YELLOW}🔎 Как узнать ваш CHAT_ID:${NC}"
+echo -e " - Перешлите любое сообщение боту: ${GREEN}@getidsbot${NC}"
+echo -e " - Он ответит вам вашим CHAT_ID"
+echo ""
+read -p "Введите ваш CHAT_ID: " CHAT_ID
 
   cat <<EOF > "$CONFIG_FILE"
 telegram:
