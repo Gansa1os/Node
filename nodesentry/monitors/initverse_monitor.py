@@ -3,9 +3,8 @@
 import subprocess
 import re
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import yaml
-import socket
 
 # === Загрузка конфигурации ===
 with open("/root/nodesentry/config.yaml", "r") as f:
@@ -32,19 +31,32 @@ NORMAL_PATTERNS = [
     r"Selected pool",
 ]
 
+# === Антиспам хранилище ===
+last_sent = {}
+
 # === Функция отправки в Telegram ===
 def send_telegram_alert(message):
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now = datetime.now()
+    key = message.strip()[:100]
+
+    if key in last_sent and now - last_sent[key] < timedelta(hours=1):
+        return
+
+    last_sent[key] = now
+
     alert = f"""🚨 NodeSentry: ошибка в логах
 
 🧩 Источник: {NODE_NAME}
-🕓 Время: {now}
+🕓 Время: {now.strftime('%Y-%m-%d %H:%M:%S')}
 
-📄 Сообщение от nitverse:
-{message}
-"""
+📄 Сообщение от initverse:
+{message}"""
+
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    requests.post(url, data={"chat_id": CHAT_ID, "text": alert})
+    try:
+        requests.post(url, data={"chat_id": CHAT_ID, "text": alert})
+    except Exception as e:
+        print("Ошибка отправки в Telegram:", e)
 
 # === Запуск мониторинга журнала systemd ===
 process = subprocess.Popen(
