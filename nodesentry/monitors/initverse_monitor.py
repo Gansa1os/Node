@@ -24,7 +24,7 @@ NORMAL_PATTERNS = [
     r"Authorized worker",
     r"Accepted \d+ ms",
     r"Job: .*",
-    r"A\d .*Kh",
+    r"\d+:\d+ A\d+:R\d+ \d+\.\d+ Kh - cp0 \d+\.\d+, cp1 \d+\.\d+",
     r"Using CPU",
     r"Established connection to",
     r"Extranonce set to",
