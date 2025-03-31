@@ -10,8 +10,10 @@ TEMPLATE_FILE="$ROOT_DIR/nodesentry.service.template"
 
 SERVICE_MONITOR="/etc/systemd/system/nodesentry-$MODULE.service"
 
-echo "📦 Установка модуля: $MODULE"
-
+__install_initverse() {
+  echo "📦 Установка модуля: initverse"
+  ...
+}
 # === Создание systemd-сервиса ===
 echo "⚙️ Создаём systemd-сервис: $SERVICE_MONITOR"
 sed "s|{{MODULE_NAME}}|$MODULE|g; s|{{FILENAME}}|initverse_monitor.py|g" \

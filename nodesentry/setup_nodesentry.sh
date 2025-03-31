@@ -166,7 +166,7 @@ install_initverse() {
   }
 
   source "$INSTALLER_PATH"
-  install_initverse
+  __install_initverse
 }
 
 # === Установка vana ===
@@ -180,7 +180,7 @@ install_vana() {
   }
 
   source "$INSTALLER_PATH"
-  install_vana
+  __install_vana
 }
 
 # === Главное меню ===
