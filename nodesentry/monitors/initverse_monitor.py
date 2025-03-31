@@ -34,6 +34,7 @@ NORMAL_PATTERNS = [
     r"Extranonce set to",
     r"Epoch : \d+ Difficulty :",
     r"Selected pool",
+    r"Resume mining",  # ← добавь сюда
 ]
 
 def is_normal_log(line):
