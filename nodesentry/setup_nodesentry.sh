@@ -155,6 +155,34 @@ remove_module_menu() {
   done
 }
 
+# === Установка initverse ===
+install_initverse() {
+  INSTALLER_URL="https://raw.githubusercontent.com/Gansa1os/Node/main/nodesentry/modules/initverse/install.sh"
+  INSTALLER_PATH="/tmp/initverse_install.sh"
+
+  curl -sSf -o "$INSTALLER_PATH" "$INSTALLER_URL" || {
+    echo -e "${RED}Не удалось скачать install.sh для initverse.${NC}"
+    exit 1
+  }
+
+  source "$INSTALLER_PATH"
+  install_initverse
+}
+
+# === Установка vana ===
+install_vana() {
+  INSTALLER_URL="https://raw.githubusercontent.com/Gansa1os/Node/main/nodesentry/modules/vana/install.sh"
+  INSTALLER_PATH="/tmp/vana_install.sh"
+
+  curl -sSf -o "$INSTALLER_PATH" "$INSTALLER_URL" || {
+    echo -e "${RED}Не удалось скачать install.sh для vana.${NC}"
+    exit 1
+  }
+
+  source "$INSTALLER_PATH"
+  install_vana
+}
+
 # === Главное меню ===
 while true; do
   echo ""
@@ -166,23 +194,10 @@ while true; do
   read -p "Выберите опцию (цифрой): " choice
 
   case $choice in
-    1)
-      source "$MODULES_DIR/initverse/install.sh"
-      install_initverse
-      ;;
-    2)
-      source "$MODULES_DIR/vana/install.sh"
-      install_vana
-      ;;
-    3)
-      remove_module_menu
-      ;;
-    0)
-      echo -e "${YELLOW}Выход...${NC}"
-      exit 0
-      ;;
-    *)
-      echo -e "${RED}Неверный выбор${NC}"
-      ;;
+    1) install_initverse ;;
+    2) install_vana ;;
+    3) remove_module_menu ;;
+    0) echo -e "${YELLOW}Выход...${NC}"; exit 0 ;;
+    *) echo -e "${RED}Неверный выбор${NC}" ;;
   esac
 done
