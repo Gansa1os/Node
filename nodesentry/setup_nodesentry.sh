@@ -9,13 +9,13 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# === Основные пути ===
+# === Пути ===
 ROOT_DIR="/root/nodesentry"
-MONITOR_DIR="$ROOT_DIR/monitors"
 TEMPLATE_FILE="$ROOT_DIR/nodesentry.service.template"
 CONFIG_FILE="$ROOT_DIR/config.yaml"
+MODULES_DIR="$ROOT_DIR/modules"
 
-mkdir -p "$MONITOR_DIR"
+mkdir -p "$MODULES_DIR"
 
 # === Проверка зависимостей ===
 echo -e "${BLUE}Проверка зависимостей...${NC}"
@@ -86,74 +86,48 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/bin/python3 /root/nodesentry/monitors/{{FILENAME}}
+ExecStart=/usr/bin/python3 /root/nodesentry/modules/{{MODULE_NAME}}/{{FILENAME}}
 Restart=always
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 EOF
+
   echo -e "${GREEN}Создан шаблон $TEMPLATE_FILE${NC}"
 fi
 
-# === Установка initverse ===
-install_initverse_monitor() {
-  MODULE="initverse"
-  FILE="$MONITOR_DIR/initverse_monitor.py"
-  RAW_URL="https://raw.githubusercontent.com/Gansa1os/Node/main/nodesentry/monitors/initverse_monitor.py"
-  SERVICE_FILE="/etc/systemd/system/nodesentry-$MODULE.service"
+# === Удаление модуля ===
+remove_selected_module() {
+  MODULE="$1"
+  SERVICE1="nodesentry-$MODULE.service"
+  SERVICE2="nodesentry-balance-$MODULE.service"
+  MODULE_DIR="$MODULES_DIR/$MODULE"
+  SERVICE_PATH1="/etc/systemd/system/$SERVICE1"
+  SERVICE_PATH2="/etc/systemd/system/$SERVICE2"
 
-  echo -e "${BLUE}Скачиваем монитор $MODULE...${NC}"
-  curl -sSf -o "$FILE" "$RAW_URL" || {
-    echo -e "${RED}Не удалось скачать $MODULE. Проверь ссылку.${NC}"
-    exit 1
-  }
+  echo -e "${BLUE}Удаляем: $MODULE${NC}"
 
-  echo -e "${BLUE}Создаём systemd-сервис...${NC}"
-  sed "s|{{MODULE_NAME}}|$MODULE|g; s|{{FILENAME}}|${MODULE}_monitor.py|g" \
-    "$TEMPLATE_FILE" > "$SERVICE_FILE"
+  systemctl stop "$SERVICE1" 2>/dev/null || true
+  systemctl disable "$SERVICE1" 2>/dev/null || true
+  [ -f "$SERVICE_PATH1" ] && rm -f "$SERVICE_PATH1" && echo "Удалён: $SERVICE_PATH1"
 
-  echo -e "${BLUE}Активируем сервис...${NC}"
+  systemctl stop "$SERVICE2" 2>/dev/null || true
+  systemctl disable "$SERVICE2" 2>/dev/null || true
+  [ -f "$SERVICE_PATH2" ] && rm -f "$SERVICE_PATH2" && echo "Удалён: $SERVICE_PATH2"
+
+  [ -d "$MODULE_DIR" ] && rm -rf "$MODULE_DIR" && echo "Удалена папка: $MODULE_DIR"
+
   systemctl daemon-reload
-  systemctl enable "nodesentry-$MODULE.service"
-  systemctl restart "nodesentry-$MODULE.service"
-
-  echo -e "${GREEN}Модуль $MODULE установлен и запущен!${NC}"
+  echo -e "${GREEN}Модуль $MODULE полностью удалён.${NC}"
 }
 
-# === Установка vana ===
-install_vana_monitor() {
-  MODULE="vana"
-  FILE="$MONITOR_DIR/vana_monitor.py"
-  RAW_URL="https://raw.githubusercontent.com/Gansa1os/Node/main/nodesentry/monitors/vana_monitor.py"
-  SERVICE_FILE="/etc/systemd/system/nodesentry-$MODULE.service"
-
-  echo -e "${BLUE}Скачиваем монитор $MODULE...${NC}"
-  curl -sSf -o "$FILE" "$RAW_URL" || {
-    echo -e "${RED}Не удалось скачать $MODULE. Проверь ссылку.${NC}"
-    exit 1
-  }
-
-  echo -e "${BLUE}Создаём systemd-сервис...${NC}"
-  sed "s|{{MODULE_NAME}}|$MODULE|g; s|{{FILENAME}}|${MODULE}_monitor.py|g" \
-    "$TEMPLATE_FILE" > "$SERVICE_FILE"
-
-  echo -e "${BLUE}Активируем сервис...${NC}"
-  systemctl daemon-reload
-  systemctl enable "nodesentry-$MODULE.service"
-  systemctl restart "nodesentry-$MODULE.service"
-
-  echo -e "${GREEN}Модуль $MODULE установлен и запущен!${NC}"
-}
-
-# === Удаление модулей ===
 remove_module_menu() {
   echo -e "\n${YELLOW}Удаление модуля мониторинга${NC}"
 
   MODULES=()
-  for f in "$MONITOR_DIR"/*_monitor.py; do
-    [ -e "$f" ] || continue
-    MODULE=$(basename "$f" _monitor.py)
+  for d in "$MODULES_DIR"/*/; do
+    MODULE=$(basename "$d")
     MODULES+=("$MODULE")
   done
 
@@ -181,23 +155,6 @@ remove_module_menu() {
   done
 }
 
-remove_selected_module() {
-  MODULE="$1"
-  SERVICE="nodesentry-$MODULE.service"
-  FILE="$MONITOR_DIR/${MODULE}_monitor.py"
-  SERVICE_PATH="/etc/systemd/system/$SERVICE"
-
-  echo -e "${BLUE}Удаляем: $MODULE${NC}"
-
-  systemctl stop "$SERVICE" 2>/dev/null || true
-  systemctl disable "$SERVICE" 2>/dev/null || true
-  [ -f "$SERVICE_PATH" ] && rm -f "$SERVICE_PATH" && echo "Удалён: $SERVICE_PATH"
-  [ -f "$FILE" ] && rm -f "$FILE" && echo "Удалён: $FILE"
-
-  systemctl daemon-reload
-  echo -e "${GREEN}Модуль $MODULE удалён.${NC}"
-}
-
 # === Главное меню ===
 while true; do
   echo ""
@@ -209,10 +166,23 @@ while true; do
   read -p "Выберите опцию (цифрой): " choice
 
   case $choice in
-    1) install_initverse_monitor ;;
-    2) install_vana_monitor ;;
-    3) remove_module_menu ;;
-    0) echo -e "${YELLOW}Выход...${NC}"; exit 0 ;;
-    *) echo -e "${RED}Неверный выбор${NC}" ;;
+    1)
+      source "$MODULES_DIR/initverse/install.sh"
+      install_initverse
+      ;;
+    2)
+      source "$MODULES_DIR/vana/install.sh"
+      install_vana
+      ;;
+    3)
+      remove_module_menu
+      ;;
+    0)
+      echo -e "${YELLOW}Выход...${NC}"
+      exit 0
+      ;;
+    *)
+      echo -e "${RED}Неверный выбор${NC}"
+      ;;
   esac
 done
