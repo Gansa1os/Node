@@ -68,10 +68,11 @@ telegram:
   chat_id: "$CHAT_ID"
 
 node_map:
-  "192.168.1.100": "Нода_1"
-  "192.168.1.101": "Нода_2"
-  "192.168.1.102": "Нода_3"
+  "37.46.23.83": "Нода_1"
+  "185.183.247.56": "Нода_2"
+  "62.171.145.237": "Нода_8"
 EOF
+
   echo -e "${GREEN}Файл config.yaml создан в $CONFIG_FILE${NC}"
 fi
 
@@ -202,17 +203,16 @@ while true; do
   echo ""
   echo -e "${BLUE}NodeSentry — главное меню${NC}"
   echo "1) Установить мониторинг initverse"
-  echo "2) Удалить модуль мониторинга"
-  echo "3) Установить мониторинг vana"
+  echo "2) Установить мониторинг vana"
+  echo "3) Удалить модуль мониторинга"
   echo "0) Выход"
   read -p "Выберите опцию (цифрой): " choice
 
   case $choice in
     1) install_initverse_monitor ;;
-    2) remove_module_menu ;;
-    3) install_vana_monitor ;;
+    2) install_vana_monitor ;;
+    3) remove_module_menu ;;
     0) echo -e "${YELLOW}Выход...${NC}"; exit 0 ;;
     *) echo -e "${RED}Неверный выбор${NC}" ;;
   esac
-
 done
