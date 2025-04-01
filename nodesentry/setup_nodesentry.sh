@@ -187,6 +187,32 @@ install_vana() {
   __install_vana
 }
 
+# === Проверка статуса сервисов ===
+check_services_status() {
+  echo -e "\n${BLUE}Проверка статуса сервисов NodeSentry${NC}"
+  
+  # Создаем директорию tools, если она не существует
+  mkdir -p "$ROOT_DIR/tools"
+  
+  # Путь к скрипту проверки
+  CHECK_SCRIPT="$ROOT_DIR/tools/check_nodesentry.sh"
+  
+  # Скачиваем скрипт, если его нет
+  if [ ! -f "$CHECK_SCRIPT" ]; then
+    curl -sSf -o "$CHECK_SCRIPT" "https://raw.githubusercontent.com/Gansa1os/Node/main/nodesentry/tools/check_nodesentry.sh" || {
+      echo -e "${RED}Не удалось скачать скрипт проверки статуса.${NC}"
+      return
+    }
+    chmod +x "$CHECK_SCRIPT"
+  fi
+  
+  # Запускаем скрипт проверки
+  "$CHECK_SCRIPT"
+  
+  echo ""
+  read -p "Нажмите Enter для возврата в меню..."
+}
+
 # === Главное меню ===
 while true; do
   echo ""
@@ -194,6 +220,7 @@ while true; do
   echo "1) Установить мониторинг initverse"
   echo "2) Установить мониторинг vana"
   echo "3) Удалить модуль мониторинга"
+  echo "4) Проверить статус сервисов"
   echo "0) Выход"
   read -p "Выберите опцию (цифрой): " choice
 
@@ -201,6 +228,7 @@ while true; do
     1) install_initverse ;;
     2) install_vana ;;
     3) remove_module_menu ;;
+    4) check_services_status ;;
     0) echo -e "${YELLOW}Выход...${NC}"; exit 0 ;;
     *) echo -e "${RED}Неверный выбор${NC}" ;;
   esac
