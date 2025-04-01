@@ -126,10 +126,14 @@ remove_module_menu() {
   echo -e "\n${YELLOW}Удаление модуля мониторинга${NC}"
 
   MODULES=()
-  for d in "$MODULES_DIR"/*/; do
-    MODULE=$(basename "$d")
-    MODULES+=("$MODULE")
-  done
+  if [ -d "$MODULES_DIR" ]; then
+    for d in "$MODULES_DIR"/*/; do
+      if [ -d "$d" ]; then
+        MODULE=$(basename "$d")
+        MODULES+=("$MODULE")
+      fi
+    done
+  fi
 
   if [ ${#MODULES[@]} -eq 0 ]; then
     echo -e "${RED}Нет установленных модулей.${NC}"

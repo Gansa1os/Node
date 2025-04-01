@@ -13,7 +13,6 @@ SERVICE_BALANCE="/etc/systemd/system/nodesentry-balance-$MODULE.service"
 
 __install_vana() {
   echo "📦 Установка модуля: vana"
-  ...
 }
 # === Проверка наличия wallet_address ===
 if ! grep -q "wallet_address:" "$CONFIG_FILE"; then
