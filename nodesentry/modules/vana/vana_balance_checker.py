@@ -8,7 +8,8 @@ from decimal import Decimal
 from datetime import datetime
 
 CONFIG_PATH = "/root/nodesentry/config.yaml"
-LAST_CHECK_PATH = "/root/nodesentry/monitors/vana/.last_balance_check"
+MONITOR_DIR = "/root/nodesentry/modules/vana"
+LAST_CHECK_PATH = f"{MONITOR_DIR}/.last_balance_check"
 CHECK_INTERVAL_HOURS = 24
 BALANCE_THRESHOLD = Decimal("5.0")
 
@@ -60,6 +61,9 @@ def load_last_check():
         return None
 
 def save_last_check():
+    # Создаем директорию, если она не существует
+    os.makedirs(os.path.dirname(LAST_CHECK_PATH), exist_ok=True)
+    
     with open(LAST_CHECK_PATH, "w") as f:
         f.write(datetime.now().isoformat())
 

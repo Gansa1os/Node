@@ -70,7 +70,7 @@ def send_telegram_alert(message):
 
 # === Запуск мониторинга логов ===
 process = subprocess.Popen(
-    ["journalctl", "-u", "initverse.service", "-f", "--output=short-iso"],
+    ["journalctl", "-u", "initverse", "-f", "--output=short-iso"],
     stdout=subprocess.PIPE,
     stderr=subprocess.STDOUT,
     universal_newlines=True

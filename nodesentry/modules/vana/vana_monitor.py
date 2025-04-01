@@ -55,7 +55,7 @@ def send_telegram_alert(message):
 🧩 Источник: {NODE_NAME}
 🕓 Время: {now.strftime('%Y-%m-%d %H:%M:%S')}
 
-📄 Сообщение от initverse:
+📄 Сообщение от vana:
 {message.strip()}"""
 
     try:
@@ -68,7 +68,7 @@ def send_telegram_alert(message):
 
 # Чтение логов
 process = subprocess.Popen(
-    ["journalctl", "-u", "initverse.service", "-f", "--output=short-iso"],
+    ["journalctl", "-u", "vana", "-f", "--output=short-iso"],
     stdout=subprocess.PIPE,
     stderr=subprocess.STDOUT,
     universal_newlines=True

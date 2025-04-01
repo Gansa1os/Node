@@ -12,7 +12,17 @@ SERVICE_MONITOR="/etc/systemd/system/nodesentry-$MODULE.service"
 
 __install_initverse() {
   echo "📦 Установка модуля: initverse"
+  
+  # Создаем директорию модуля
+  mkdir -p "$MODULE_DIR"
+  
+  # Скачиваем файл монитора
+  curl -sSf -o "$MODULE_DIR/initverse_monitor.py" "https://raw.githubusercontent.com/Gansa1os/Node/main/nodesentry/modules/initverse/initverse_monitor.py"
+  chmod +x "$MODULE_DIR/initverse_monitor.py"
 }
+
+# Вызываем функцию установки
+__install_initverse
 
 # === Создание systemd-сервиса ===
 echo "⚙️ Создаём systemd-сервис: $SERVICE_MONITOR"

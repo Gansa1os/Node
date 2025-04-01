@@ -13,7 +13,22 @@ SERVICE_BALANCE="/etc/systemd/system/nodesentry-balance-$MODULE.service"
 
 __install_vana() {
   echo "📦 Установка модуля: vana"
+  
+  # Создаем директорию модуля
+  mkdir -p "$MODULE_DIR"
+  
+  # Скачиваем файлы мониторинга
+  curl -sSf -o "$MODULE_DIR/vana_monitor.py" "https://raw.githubusercontent.com/Gansa1os/Node/main/nodesentry/modules/vana/vana_monitor.py"
+  curl -sSf -o "$MODULE_DIR/vana_balance_checker.py" "https://raw.githubusercontent.com/Gansa1os/Node/main/nodesentry/modules/vana/vana_balance_checker.py"
+  
+  # Делаем файлы исполняемыми
+  chmod +x "$MODULE_DIR/vana_monitor.py"
+  chmod +x "$MODULE_DIR/vana_balance_checker.py"
 }
+
+# Вызываем функцию установки
+__install_vana
+
 # === Проверка наличия wallet_address ===
 if ! grep -q "wallet_address:" "$CONFIG_FILE"; then
   echo ""
