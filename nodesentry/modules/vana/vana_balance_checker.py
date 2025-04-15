@@ -23,36 +23,41 @@ def get_node_name(ip, node_map):
     return node_map.get(ip, ip)
 
 def get_balance(address):
-    """Получение баланса кошелька Vana через curl"""
+    """Получение баланса кошелька Vana через простой curl"""
     try:
         print(f"Запрос баланса для адреса: {address}")
         
-        # Формируем команду curl с необходимыми заголовками и куками
-        cmd = f"""curl -s -H "User-Agent: Mozilla/5.0" -H "Accept: */*" -H "Referer: https://moksha.vanascan.io/address/{address}" "https://moksha.vanascan.io/api/v2/addresses/{address}" """
+        # Максимально простой запрос без кавычек
+        cmd = 'curl -s https://moksha.vanascan.io/api/v2/addresses/' + address
         
         # Выполняем команду
         result = os.popen(cmd).read()
+        
+        # Выводим результат для диагностики
+        print(f"Результат curl: {result[:100]}...")
         
         # Проверяем, что ответ не пустой
         if not result.strip():
             print("Ошибка API: пустой ответ")
             return Decimal("0")
-            
-        # Выводим первые 200 символов ответа для диагностики
-        print(f"Ответ API (первые 200 символов): {result[:200]}")
         
         # Пробуем распарсить JSON
-        data = json.loads(result)
-        
-        # Проверяем наличие поля coin_balance
-        if "coin_balance" not in data:
-            print(f"Ошибка: поле 'coin_balance' отсутствует в ответе")
-            return Decimal("0")
+        try:
+            data = json.loads(result)
             
-        raw_balance = data.get("coin_balance", "0")
-        balance = Decimal(raw_balance) / Decimal(10**18)
-        print(f"Баланс получен: {balance:.6f} VANA")
-        return balance
+            # Проверяем наличие поля coin_balance
+            if "coin_balance" not in data:
+                print(f"Ошибка: поле 'coin_balance' отсутствует в ответе")
+                return Decimal("0")
+                
+            raw_balance = data.get("coin_balance", "0")
+            balance = Decimal(raw_balance) / Decimal(10**18)
+            print(f"Баланс получен: {balance:.6f} VANA")
+            return balance
+        except json.JSONDecodeError as e:
+            print(f"Ошибка декодирования JSON: {e}")
+            print(f"Полученный ответ: {result}")
+            return Decimal("0")
     except Exception as e:
         print(f"Ошибка при запросе: {e}")
         return Decimal("0")
