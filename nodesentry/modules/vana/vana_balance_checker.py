@@ -23,32 +23,32 @@ def get_node_name(ip, node_map):
     return node_map.get(ip, ip)
 
 def get_balance(address):
-    """Получение баланса кошелька Vana"""
-    url = f"https://moksha.vanascan.io/api/v2/addresses/{address}"
-
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
-        "Referer": f"https://moksha.vanascan.io/address/{address}",
-        "Accept": "*/*",
-    }
-
-    cookies = {
-        "chakra-ui-color-mode": "light",
-        "chakra-ui-color-mode-hex": "#FFFFFF",
-        "indexing_alert": "false",
-        "address_format": "base16",
-    }
-
+    """Получение баланса кошелька Vana через curl"""
     try:
         print(f"Запрос баланса для адреса: {address}")
-        response = requests.get(url, headers=headers, cookies=cookies, timeout=10)
-        print(f"Статус ответа: {response.status_code}")
         
-        if response.status_code != 200:
-            print(f"Ошибка: {response.text[:200]}")
+        # Формируем команду curl с необходимыми заголовками и куками
+        cmd = f"""curl -s -H "User-Agent: Mozilla/5.0" -H "Accept: */*" -H "Referer: https://moksha.vanascan.io/address/{address}" "https://moksha.vanascan.io/api/v2/addresses/{address}" """
+        
+        # Выполняем команду
+        result = os.popen(cmd).read()
+        
+        # Проверяем, что ответ не пустой
+        if not result.strip():
+            print("Ошибка API: пустой ответ")
             return Decimal("0")
+            
+        # Выводим первые 200 символов ответа для диагностики
+        print(f"Ответ API (первые 200 символов): {result[:200]}")
         
-        data = response.json()
+        # Пробуем распарсить JSON
+        data = json.loads(result)
+        
+        # Проверяем наличие поля coin_balance
+        if "coin_balance" not in data:
+            print(f"Ошибка: поле 'coin_balance' отсутствует в ответе")
+            return Decimal("0")
+            
         raw_balance = data.get("coin_balance", "0")
         balance = Decimal(raw_balance) / Decimal(10**18)
         print(f"Баланс получен: {balance:.6f} VANA")
@@ -93,36 +93,53 @@ def save_last_check():
         f.write(datetime.now().isoformat())
 
 async def main():
-    config = load_config()
-    wallet = config.get("wallet_address")
-    if not wallet:
-        print("⚠️ Wallet address не задан в config.yaml")
-        return
+    try:
+        print(f"Запуск проверки баланса Vana: {datetime.now()}")
+        
+        config = load_config()
+        wallet = config.get("wallet_address")
+        if not wallet:
+            print("⚠️ Wallet address не задан в config.yaml")
+            return
 
-    ip = os.popen("hostname -I | awk '{print $1}'").read().strip()
-    node_name = get_node_name(ip, config.get("node_map", {}))
-    bot_token = config["telegram"]["bot_token"]
-    chat_id = config["telegram"]["chat_id"]
+        print(f"Адрес кошелька из конфигурации: {wallet}")
+        
+        ip = os.popen("hostname -I | awk '{print $1}'").read().strip()
+        node_name = get_node_name(ip, config.get("node_map", {}))
+        bot_token = config["telegram"]["bot_token"]
+        chat_id = config["telegram"]["chat_id"]
 
-    while True:
-        last = load_last_check()
-        now = datetime.now()
-
-        if not last or (now - last).total_seconds() >= CHECK_INTERVAL_HOURS * 3600:
+        print(f"Настройки: IP={ip}, Нода={node_name}, CHAT_ID={chat_id}")
+        
+        while True:
             try:
-                balance = get_balance(wallet)
-                print(f"[{now}] Баланс: {balance:.6f} VANA")
+                print(f"Проверка времени последней проверки: {datetime.now()}")
+                last = load_last_check()
+                now = datetime.now()
 
-                # Отправляем алерт если баланс ниже или равен порогу
-                if balance <= BALANCE_THRESHOLD:
-                    print(f"Баланс ниже порога ({BALANCE_THRESHOLD} VANA), отправляем алерт")
-                    send_telegram_alert(bot_token, chat_id, node_name, wallet, balance)
+                if last:
+                    seconds_since_last = (now - last).total_seconds()
+                    print(f"Последняя проверка: {last}, прошло {seconds_since_last} секунд из {CHECK_INTERVAL_HOURS * 3600} необходимых")
                 else:
-                    print(f"Баланс в норме ({balance:.6f} VANA), порог: {BALANCE_THRESHOLD} VANA")
-            except Exception as e:
-                print(f"Ошибка при проверке баланса: {e}")
-                # Отправляем алерт о проблеме с проверкой баланса
-                error_message = f"""⚠️ NodeSentry: ошибка проверки баланса
+                    print("Первая проверка (предыдущих не было)")
+                
+                if not last or (now - last).total_seconds() >= CHECK_INTERVAL_HOURS * 3600:
+                    print(f"Начинаем проверку баланса для {wallet}")
+                    
+                    try:
+                        balance = get_balance(wallet)
+                        print(f"[{now}] Баланс: {balance:.6f} VANA")
+
+                        # Отправляем алерт если баланс ниже или равен порогу
+                        if balance <= BALANCE_THRESHOLD:
+                            print(f"Баланс ниже порога ({BALANCE_THRESHOLD} VANA), отправляем алерт")
+                            send_telegram_alert(bot_token, chat_id, node_name, wallet, balance)
+                        else:
+                            print(f"Баланс в норме ({balance:.6f} VANA), порог: {BALANCE_THRESHOLD} VANA")
+                    except Exception as e:
+                        print(f"Ошибка при проверке баланса: {e}")
+                        # Отправляем алерт о проблеме с проверкой баланса
+                        error_message = f"""⚠️ NodeSentry: ошибка проверки баланса
 
 🧩 Нода: {node_name}
 🔑 Адрес: `{wallet}`
@@ -130,18 +147,27 @@ async def main():
 
 🔗 Проверить вручную:
 https://moksha.vanascan.io/address/{wallet}"""
-                
-                try:
-                    requests.post(
-                        f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                        data={"chat_id": chat_id, "text": error_message, "parse_mode": "Markdown"}
-                    )
-                except Exception as e2:
-                    print(f"Ошибка отправки сообщения об ошибке: {e2}")
+                        
+                        try:
+                            requests.post(
+                                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                                data={"chat_id": chat_id, "text": error_message, "parse_mode": "Markdown"}
+                            )
+                        except Exception as e2:
+                            print(f"Ошибка отправки сообщения об ошибке: {e2}")
 
-            save_last_check()
+                    print("Сохраняем время проверки")
+                    save_last_check()
+                else:
+                    print(f"Еще не время для проверки, ждем {CHECK_INTERVAL_HOURS} часов с момента последней проверки")
 
-        await asyncio.sleep(3600)  # Проверка каждый час (вдруг сервер перезапущен)
-        
+                print(f"Ожидание 1 час до следующей проверки времени")
+                await asyncio.sleep(3600)  # Проверка каждый час (вдруг сервер перезапущен)
+            except Exception as e:
+                print(f"Ошибка в основном цикле: {e}")
+                await asyncio.sleep(3600)  # Ждем час и пробуем снова
+    except Exception as e:
+        print(f"Критическая ошибка в main: {e}")
+
 if __name__ == "__main__":
     asyncio.run(main())
