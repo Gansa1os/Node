@@ -27,6 +27,7 @@ last_sent = {}
 NORMAL_PATTERNS = [
     r"Authorized worker",
     r"Accepted \d+ ms",
+    r"\*\*Accepted\d+ ms",
     r"Job: .*",
     r"\d+:\d+ A\d+:R\d+ \d+\.\d+ Kh - cp0 \d+\.\d+, cp1 \d+\.\d+",
     r"Using CPU",
@@ -34,7 +35,8 @@ NORMAL_PATTERNS = [
     r"Extranonce set to",
     r"Epoch : \d+ Difficulty :",
     r"Selected pool",
-    r"Resume mining",  # ← добавь сюда
+    r"Resume mining",  
+    r"m \d+:\d+:\d+ iniminer-linux- \d+:\d+ A\d+ \d+\.\d+ Kh - cp0 \d+\.\d+, cp1 \d+\.\d+",  
 ]
 
 def is_normal_log(line):
@@ -47,8 +49,8 @@ def send_telegram_alert(message):
     now = datetime.now()
     key = message.strip()[:100]
 
-    if key in last_sent and now - last_sent[key] < timedelta(hours=1):
-        return  # антиспам
+    if key in last_sent and now - last_sent[key] < timedelta(hours=2):
+        return  
 
     last_sent[key] = now
 

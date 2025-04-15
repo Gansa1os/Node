@@ -22,19 +22,15 @@ NODE_NAME = NODE_MAP.get(IP, IP)
 last_sent = {}
 
 # Паттерны нормальных логов (не отправлять)
-NORMAL_PATTERNS = [
-    r"Authorized worker",
-    r"Accepted \d+ ms",
-    r"Job: .*",
-    r"\d+:\d+ A\d+:R\d+ \d+\.\d+ Kh - cp0 \d+\.\d+, cp1 \d+\.\d+",
-    r"Using CPU",
-    r"Established connection to",
-    r"Extranonce set to",
-    r"Epoch : \d+ Difficulty :",
-    r"Selected pool",
-]
+# Для vana достаточно проверки на INFO в функции is_normal_log
+NORMAL_PATTERNS = []
 
 def is_normal_log(line):
+    # Проверяем, содержит ли строка INFO - такие сообщения считаем нормальными
+    if "INFO" in line:
+        return True
+        
+    # Если нужно добавить другие проверки, можно использовать паттерны
     for pattern in NORMAL_PATTERNS:
         if re.search(pattern, line):
             return True
