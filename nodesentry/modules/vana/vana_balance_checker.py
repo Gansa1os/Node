@@ -28,10 +28,36 @@ def get_balance(address):
         "Origin": "https://moksha.vanascan.io",
         "Referer": "https://moksha.vanascan.io/",
     }
-    response = requests.get(url, headers=headers)
-    data = response.json()
-    raw = data.get("coin_balance", "0")
-    return Decimal(raw) / Decimal(10**18)
+    try:
+        response = requests.get(url, headers=headers)
+        print(f"API ответ: статус {response.status_code}")
+        
+        # Проверяем статус ответа
+        if response.status_code != 200:
+            print(f"Ошибка API: статус {response.status_code}, текст: {response.text[:100]}")
+            return Decimal("0")
+            
+        # Проверяем, что ответ не пустой
+        if not response.text.strip():
+            print("Ошибка API: пустой ответ")
+            return Decimal("0")
+            
+        # Пробуем распарсить JSON
+        data = response.json()
+        raw = data.get("coin_balance", "0")
+        balance = Decimal(raw) / Decimal(10**18)
+        print(f"Баланс получен: {balance} VANA")
+        return balance
+    except requests.exceptions.RequestException as e:
+        print(f"Ошибка запроса: {e}")
+        return Decimal("0")
+    except (ValueError, requests.exceptions.JSONDecodeError) as e:
+        print(f"Ошибка декодирования JSON: {e}")
+        print(f"Ответ сервера: {response.text[:200]}")
+        return Decimal("0")
+    except Exception as e:
+        print(f"Неизвестная ошибка: {e}")
+        return Decimal("0")
 
 def send_telegram_alert(bot_token, chat_id, node_name, address, balance):
     message = f"""⚠️ NodeSentry: низкий баланс
@@ -84,15 +110,39 @@ async def main():
         now = datetime.now()
 
         if not last or (now - last).total_seconds() >= CHECK_INTERVAL_HOURS * 3600:
-            balance = get_balance(wallet)
-            print(f"[{now}] Баланс: {balance:.2f} VANA")
+            try:
+                balance = get_balance(wallet)
+                print(f"[{now}] Баланс: {balance:.2f} VANA")
 
-            if balance < BALANCE_THRESHOLD:
-                send_telegram_alert(bot_token, chat_id, node_name, wallet, balance)
+                # Отправляем алерт если баланс ниже порога или равен 0 (возможная ошибка API)
+                if balance <= BALANCE_THRESHOLD:
+                    print(f"Баланс ниже порога ({BALANCE_THRESHOLD} VANA), отправляем алерт")
+                    send_telegram_alert(bot_token, chat_id, node_name, wallet, balance)
+                else:
+                    print(f"Баланс в норме ({balance:.2f} VANA), порог: {BALANCE_THRESHOLD} VANA")
+            except Exception as e:
+                print(f"Ошибка при проверке баланса: {e}")
+                # Отправляем алерт о проблеме с проверкой баланса
+                error_message = f"""⚠️ NodeSentry: ошибка проверки баланса
+
+🧩 Нода: {node_name}
+🔑 Адрес: `{wallet}`
+❌ Ошибка: {str(e)}
+
+🔗 Проверить вручную:
+https://moksha.vanascan.io/address/{wallet}"""
+                
+                try:
+                    requests.post(
+                        f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                        data={"chat_id": chat_id, "text": error_message, "parse_mode": "Markdown"}
+                    )
+                except Exception as e2:
+                    print(f"Ошибка отправки сообщения об ошибке: {e2}")
 
             save_last_check()
 
-        await asyncio.sleep(3600)  # Проверка каждые час (вдруг сервер перезапущен)
+        await asyncio.sleep(3600)  # Проверка каждый час (вдруг сервер перезапущен)
         
 if __name__ == "__main__":
     asyncio.run(main())
