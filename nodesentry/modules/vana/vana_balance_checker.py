@@ -21,15 +21,35 @@ def get_node_name(ip, node_map):
     return node_map.get(ip, ip)
 
 def get_balance(address):
-    url = f"https://api.moksha.vanascan.io/api/v2/addresses/{address}"
+    url = f"https://moksha.vanascan.io/api/v2/addresses/{address}"
+    
+    # Расширенные заголовки на основе примера запроса
     headers = {
-        "User-Agent": "Mozilla/5.0",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
         "Accept": "*/*",
+        "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Referer": f"https://moksha.vanascan.io/address/{address}",
         "Origin": "https://moksha.vanascan.io",
-        "Referer": "https://moksha.vanascan.io/",
+        "authority": "moksha.vanascan.io",
+        "sec-ch-ua": '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"macOS"',
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin"
     }
+    
+    # Куки из примера
+    cookies = {
+        "chakra-ui-color-mode": "light",
+        "chakra-ui-color-mode-hex": "#FFFFFF",
+        "indexing_alert": "false",
+        "address_format": "base16"
+    }
+    
     try:
-        response = requests.get(url, headers=headers)
+        print(f"Запрос баланса для адреса: {address}")
+        response = requests.get(url, headers=headers, cookies=cookies)
         print(f"API ответ: статус {response.status_code}")
         
         # Проверяем статус ответа
@@ -42,11 +62,20 @@ def get_balance(address):
             print("Ошибка API: пустой ответ")
             return Decimal("0")
             
+        # Выводим первые 200 символов ответа для диагностики
+        print(f"Ответ API (первые 200 символов): {response.text[:200]}")
+            
         # Пробуем распарсить JSON
         data = response.json()
+        
+        # Проверяем наличие поля coin_balance
+        if "coin_balance" not in data:
+            print(f"Ошибка: поле 'coin_balance' отсутствует в ответе. Полный ответ: {response.text}")
+            return Decimal("0")
+            
         raw = data.get("coin_balance", "0")
         balance = Decimal(raw) / Decimal(10**18)
-        print(f"Баланс получен: {balance} VANA")
+        print(f"Баланс получен: {balance} VANA (raw: {raw})")
         return balance
     except requests.exceptions.RequestException as e:
         print(f"Ошибка запроса: {e}")
