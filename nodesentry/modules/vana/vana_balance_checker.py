@@ -116,6 +116,12 @@ def save_last_check():
     with open(LAST_CHECK_PATH, "w") as f:
         f.write(datetime.now().isoformat())
 
+def reset_last_check():
+    """Удаляет файл с временем последней проверки, чтобы вызвать принудительную проверку"""
+    if os.path.exists(LAST_CHECK_PATH):
+        os.remove(LAST_CHECK_PATH)
+        print(f"Файл {LAST_CHECK_PATH} удален для принудительной проверки")
+
 async def main():
     try:
         print(f"Запуск проверки баланса Vana: {datetime.now()}")
