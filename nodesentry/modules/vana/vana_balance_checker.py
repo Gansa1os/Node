@@ -23,47 +23,48 @@ def get_node_name(ip, node_map):
     return node_map.get(ip, ip)
 
 def get_balance(address):
-    """Получение баланса кошелька Vana через простой curl"""
+    """Получение баланса кошелька Vana через requests"""
     try:
         print(f"Запрос баланса для адреса: {address}")
         
-        # Используем полный путь к curl и экранируем адрес
-        cmd = f"/usr/bin/curl -s 'https://moksha.vanascan.io/api/v2/addresses/{address}'"
+        url = f"https://moksha.vanascan.io/api/v2/addresses/{address}"
+        headers = {
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "*/*"
+        }
         
-        print(f"Выполняем команду: {cmd}")
-        # Выполняем команду
-        result = os.popen(cmd).read()
+        print(f"Отправка запроса к {url}")
+        response = requests.get(url, headers=headers, timeout=10)
         
-        # Выводим результат для диагностики
-        print(f"Результат curl: {result[:100]}...")
+        print(f"Получен ответ со статусом: {response.status_code}")
         
+        if response.status_code != 200:
+            print(f"Ошибка API: статус {response.status_code}")
+            return Decimal("0")
+            
         # Проверяем, что ответ не пустой
-        if not result.strip():
+        if not response.text.strip():
             print("Ошибка API: пустой ответ")
             return Decimal("0")
-        
-        # Пробуем распарсить JSON
-        try:
-            data = json.loads(result)
             
-            # Проверяем наличие поля coin_balance
-            if "coin_balance" not in data:
-                print(f"Ошибка: поле 'coin_balance' отсутствует в ответе")
-                return Decimal("0")
-                
-            raw_balance = data.get("coin_balance", "0")
-            balance = Decimal(raw_balance) / Decimal(10**18)
-            print(f"Баланс получен: {balance:.6f} VANA")
-            return balance
-        except json.JSONDecodeError as e:
-            print(f"Ошибка декодирования JSON: {e}")
-            print(f"Полученный ответ: {result}")
+        # Пробуем распарсить JSON
+        data = response.json()
+        
+        # Проверяем наличие поля coin_balance
+        if "coin_balance" not in data:
+            print(f"Ошибка: поле 'coin_balance' отсутствует в ответе")
             return Decimal("0")
+            
+        raw_balance = data.get("coin_balance", "0")
+        balance = Decimal(raw_balance) / Decimal(10**18)
+        print(f"Баланс получен: {balance:.6f} VANA")
+        return balance
     except Exception as e:
         print(f"Ошибка при запросе: {e}")
         return Decimal("0")
 
 def send_telegram_alert(bot_token, chat_id, node_name, address, balance):
+    """Отправка уведомления в Telegram"""
     message = f"""⚠️ NodeSentry: низкий баланс
 
 🧩 Нода: {node_name}
@@ -74,35 +75,30 @@ def send_telegram_alert(bot_token, chat_id, node_name, address, balance):
 https://faucet.vana.org/"""
 
     print(f"Подготовлено сообщение для отправки в Telegram:\n{message}")
-    print(f"Отправляем на CHAT_ID: {chat_id} с BOT_TOKEN: {bot_token[:5]}...")
+    print(f"Отправляем на CHAT_ID: {chat_id}")
 
     try:
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-        data = {"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
+        data = {
+            "chat_id": chat_id,
+            "text": message,
+            "parse_mode": "Markdown"
+        }
         
-        print(f"Отправка запроса на URL: {url}")
-        print(f"Данные запроса: {data}")
+        print(f"Отправка запроса к API Telegram: {url}")
+        response = requests.post(url, data=data, timeout=10)
         
-        # Используем curl для отправки запроса
-        curl_cmd = f'curl -s -X POST "{url}" -d "chat_id={chat_id}" -d "text={message}" -d "parse_mode=Markdown"'
-        print(f"Выполняем команду curl: {curl_cmd[:100]}...")
+        print(f"Получен ответ от API Telegram: {response.status_code}")
         
-        result = os.popen(curl_cmd).read()
-        print(f"Результат отправки: {result[:200]}")
-        
-        # Проверяем результат
-        try:
-            response_data = json.loads(result)
-            if response_data.get("ok"):
-                print("✅ Сообщение успешно отправлено в Telegram")
-            else:
-                print(f"❌ Ошибка при отправке сообщения: {response_data}")
-        except Exception as e:
-            print(f"❌ Не удалось разобрать ответ: {e}")
-        
-        print("Отправка уведомления в Telegram завершена")
+        if response.status_code == 200:
+            print("✅ Сообщение успешно отправлено в Telegram")
+            return True
+        else:
+            print(f"❌ Ошибка при отправке сообщения: {response.text}")
+            return False
     except Exception as e:
         print(f"❌ Ошибка отправки Telegram: {e}")
+        return False
 
 def load_last_check():
     if not os.path.exists(LAST_CHECK_PATH):
