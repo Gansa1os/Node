@@ -67,19 +67,41 @@ def send_telegram_alert(bot_token, chat_id, node_name, address, balance):
 
 🧩 Нода: {node_name}
 🔑 Адрес:  `{address}`
-💰 Баланс: {balance:.2f} VANA
+💰 Баланс: {balance:.6f} VANA
 
 🔗 Пополнить через кран:
 https://faucet.vana.org/"""
 
+    print(f"Подготовлено сообщение для отправки в Telegram:\n{message}")
+    print(f"Отправляем на CHAT_ID: {chat_id} с BOT_TOKEN: {bot_token[:5]}...")
+
     try:
-        requests.post(
-            f"https://api.telegram.org/bot{bot_token}/sendMessage",
-            data={"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
-        )
-        print(f"Отправлено уведомление о низком балансе: {balance} VANA")
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        data = {"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
+        
+        print(f"Отправка запроса на URL: {url}")
+        print(f"Данные запроса: {data}")
+        
+        # Используем curl для отправки запроса
+        curl_cmd = f'curl -s -X POST "{url}" -d "chat_id={chat_id}" -d "text={message}" -d "parse_mode=Markdown"'
+        print(f"Выполняем команду curl: {curl_cmd[:100]}...")
+        
+        result = os.popen(curl_cmd).read()
+        print(f"Результат отправки: {result[:200]}")
+        
+        # Проверяем результат
+        try:
+            response_data = json.loads(result)
+            if response_data.get("ok"):
+                print("✅ Сообщение успешно отправлено в Telegram")
+            else:
+                print(f"❌ Ошибка при отправке сообщения: {response_data}")
+        except Exception as e:
+            print(f"❌ Не удалось разобрать ответ: {e}")
+        
+        print("Отправка уведомления в Telegram завершена")
     except Exception as e:
-        print("Ошибка отправки Telegram:", e)
+        print(f"❌ Ошибка отправки Telegram: {e}")
 
 def load_last_check():
     if not os.path.exists(LAST_CHECK_PATH):
@@ -115,6 +137,23 @@ async def main():
         chat_id = config["telegram"]["chat_id"]
 
         print(f"Настройки: IP={ip}, Нода={node_name}, CHAT_ID={chat_id}")
+        
+        # Принудительная проверка баланса при запуске
+        print("Выполняем принудительную проверку баланса при запуске...")
+        try:
+            balance = get_balance(wallet)
+            print(f"[{datetime.now()}] Баланс при запуске: {balance:.6f} VANA")
+
+            if balance <= BALANCE_THRESHOLD:
+                print(f"Баланс ниже порога ({BALANCE_THRESHOLD} VANA), отправляем алерт")
+                send_telegram_alert(bot_token, chat_id, node_name, wallet, balance)
+            else:
+                print(f"Баланс в норме ({balance:.6f} VANA), порог: {BALANCE_THRESHOLD} VANA")
+        except Exception as e:
+            print(f"Ошибка при проверке баланса при запуске: {e}")
+            
+        # Сбрасываем время последней проверки, чтобы следующая проверка была через 24 часа
+        save_last_check()
         
         while True:
             try:
