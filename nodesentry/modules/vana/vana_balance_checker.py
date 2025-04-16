@@ -27,9 +27,10 @@ def get_balance(address):
     try:
         print(f"Запрос баланса для адреса: {address}")
         
-        # Максимально простой запрос без кавычек
-        cmd = 'curl -s https://moksha.vanascan.io/api/v2/addresses/' + address
+        # Используем полный путь к curl и экранируем адрес
+        cmd = f"/usr/bin/curl -s 'https://moksha.vanascan.io/api/v2/addresses/{address}'"
         
+        print(f"Выполняем команду: {cmd}")
         # Выполняем команду
         result = os.popen(cmd).read()
         
