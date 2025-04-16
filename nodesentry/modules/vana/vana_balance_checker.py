@@ -16,8 +16,23 @@ CHECK_INTERVAL_HOURS = 24
 BALANCE_THRESHOLD = Decimal("5.0")
 
 def load_config():
-    with open(CONFIG_PATH, "r") as f:
-        return yaml.safe_load(f)
+    """Загрузка конфигурации из файла"""
+    try:
+        with open(CONFIG_PATH, "r") as f:
+            config = yaml.safe_load(f)
+            
+        # Проверка и очистка адреса кошелька
+        if "wallet_address" in config:
+            # Удаляем пробелы и другие потенциально опасные символы
+            config["wallet_address"] = config["wallet_address"].strip()
+            print(f"Загружен адрес кошелька: {config['wallet_address']}")
+        else:
+            print("⚠️ В конфигурации отсутствует wallet_address")
+            
+        return config
+    except Exception as e:
+        print(f"❌ Ошибка загрузки конфигурации: {e}")
+        return {}
 
 def get_node_name(ip, node_map):
     return node_map.get(ip, ip)
@@ -127,14 +142,30 @@ async def main():
         print(f"Запуск проверки баланса Vana: {datetime.now()}")
         
         config = load_config()
-        wallet = config.get("wallet_address")
+        wallet = config.get("wallet_address", "")
+        
+        # Проверка на пустой адрес кошелька
         if not wallet:
             print("⚠️ Wallet address не задан в config.yaml")
+            return
+        
+        # Дополнительная проверка и очистка адреса кошелька
+        wallet = wallet.strip()
+        if not wallet.startswith("0x"):
+            print(f"⚠️ Неверный формат адреса кошелька: {wallet}")
             return
 
         print(f"Адрес кошелька из конфигурации: {wallet}")
         
-        ip = os.popen("hostname -I | awk '{print $1}'").read().strip()
+        try:
+            # Более безопасный способ получения IP-адреса
+            result = subprocess.run(["hostname", "-I"], capture_output=True, text=True, check=True)
+            ip_addresses = result.stdout.strip().split()
+            ip = ip_addresses[0] if ip_addresses else "unknown"
+        except Exception as e:
+            print(f"Ошибка при получении IP-адреса: {e}")
+            ip = "unknown"
+            
         node_name = get_node_name(ip, config.get("node_map", {}))
         bot_token = config["telegram"]["bot_token"]
         chat_id = config["telegram"]["chat_id"]
@@ -183,12 +214,22 @@ async def main():
 https://moksha.vanascan.io/address/{wallet}"""
                         
                         try:
-                            requests.post(
+                            print(f"Отправка уведомления об ошибке в Telegram")
+                            response = requests.post(
                                 f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                                data={"chat_id": chat_id, "text": error_message, "parse_mode": "Markdown"}
+                                data={
+                                    "chat_id": chat_id, 
+                                    "text": error_message, 
+                                    "parse_mode": "Markdown"
+                                },
+                                timeout=10
                             )
+                            if response.status_code == 200:
+                                print("✅ Сообщение об ошибке успешно отправлено")
+                            else:
+                                print(f"❌ Ошибка отправки сообщения: {response.status_code} - {response.text}")
                         except Exception as e2:
-                            print(f"Ошибка отправки сообщения об ошибке: {e2}")
+                            print(f"❌ Ошибка отправки сообщения об ошибке: {e2}")
 
                     print("Сохраняем время проверки")
                     save_last_check()
