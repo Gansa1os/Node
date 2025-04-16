@@ -143,20 +143,7 @@ async def main():
         
         # Принудительная проверка баланса при запуске
         print("Выполняем принудительную проверку баланса при запуске...")
-        try:
-            balance = get_balance(wallet)
-            print(f"[{datetime.now()}] Баланс при запуске: {balance:.6f} VANA")
-
-            if balance <= BALANCE_THRESHOLD:
-                print(f"Баланс ниже порога ({BALANCE_THRESHOLD} VANA), отправляем алерт")
-                send_telegram_alert(bot_token, chat_id, node_name, wallet, balance)
-            else:
-                print(f"Баланс в норме ({balance:.6f} VANA), порог: {BALANCE_THRESHOLD} VANA")
-        except Exception as e:
-            print(f"Ошибка при проверке баланса при запуске: {e}")
-            
-        # Сбрасываем время последней проверки, чтобы следующая проверка была через 24 часа
-        save_last_check()
+        reset_last_check()  # Удаляем файл с временем последней проверки
         
         while True:
             try:
