@@ -18,35 +18,30 @@ MODULES_DIR="$ROOT_DIR/modules"
 mkdir -p "$MODULES_DIR"
 
 # === Проверка зависимостей ===
-echo -e "${BLUE}Проверка зависимостей...${NC}"
+echo -e "${BLUE}Проверка и установка зависимостей...${NC}"
 
-check_dep() {
-  command -v "$1" >/dev/null 2>&1 && echo -e "[${GREEN}✔${NC}] $1" || {
-    echo -e "[${RED}✘${NC}] $1 не установлен"
-    MISSING=true
-  }
+install_if_missing() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo -e "[${YELLOW}⇩${NC}] Устанавливаю $1..."
+    apt update -y && apt install -y "$1"
+  else
+    echo -e "[${GREEN}✔${NC}] $1 установлен"
+  fi
 }
 
-MISSING=false
-check_dep python3
-check_dep pip3
+install_python_module() {
+  if ! python3 -c "import $1" 2>/dev/null; then
+    echo -e "[${YELLOW}⇩${NC}] pip install $1..."
+    pip3 install "$1"
+  else
+    echo -e "[${GREEN}✔${NC}] Модуль Python '$1' установлен"
+  fi
+}
 
-if ! python3 -c "import requests" 2>/dev/null; then
-  echo -e "[${RED}✘${NC}] Модуль Python 'requests' не установлен"
-  MISSING=true
-fi
-
-if ! python3 -c "import yaml" 2>/dev/null; then
-  echo -e "[${RED}✘${NC}] Модуль Python 'pyyaml' не установлен"
-  MISSING=true
-fi
-
-if [ "$MISSING" = true ]; then
-  echo -e "${RED}Пожалуйста, установите недостающие зависимости и запустите снова.${NC}"
-  exit 1
-else
-  echo -e "${GREEN}Все зависимости на месте.${NC}"
-fi
+install_if_missing python3
+install_if_missing pip3
+install_python_module requests
+install_python_module yaml
 
 # === config.yaml ===
 if [ ! -f "$CONFIG_FILE" ]; then
