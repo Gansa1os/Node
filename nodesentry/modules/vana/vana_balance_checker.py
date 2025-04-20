@@ -75,6 +75,7 @@ def main():
     print(">>> STARTED vana_balance_checker.py")
     config = load_config()
     wallet = config.get("wallet_address", "").strip()
+    print(f"⚙️ Используемый адрес: {wallet}")
     bot_token = config["telegram"]["bot_token"]
     chat_id = config["telegram"]["chat_id"]
     node_map = config.get("node_map", {})
