@@ -89,13 +89,15 @@ def main():
 
     while True:
         balance = get_balance(wallet)
-        print(f"[{datetime.now()}] Баланс: {balance:.6f} VANA")
+        print(f"[{datetime.now()}] Баланс: {balance:.6f} VANA", flush=True)
+
         if balance <= BALANCE_THRESHOLD:
             send_telegram_alert(bot_token, chat_id, node_name, wallet, balance)
         else:
-            print(f"Баланс в норме (>{BALANCE_THRESHOLD} VANA)")
+            print(f"Баланс в норме (>{BALANCE_THRESHOLD} VANA)", flush=True)
 
-        time.sleep(3600)
+        print("⏳ Ждём следующую проверку через 12 часов...\n", flush=True)
+        time.sleep(43200)
 
 if __name__ == "__main__":
     main()
